@@ -1,0 +1,1 @@
+from .items.categories import Registry as Registry
