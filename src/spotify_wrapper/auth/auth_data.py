@@ -6,10 +6,12 @@ class AuthData:
     # this file's directory
     dir = os.path.dirname(__file__)
     refresh_token_path = os.path.join(dir, 'refresh_token')
+    refresh_token = None
 
     @staticmethod
     def set_refresh_token(refresh_token):
         # store refresh token in a file
+        AuthData.refresh_token = refresh_token
         with open(AuthData.refresh_token_path, 'w') as f:
             f.write(refresh_token)
 
@@ -22,6 +24,8 @@ class AuthData:
     @staticmethod
     def get_refresh_token():
         # get refresh token from file
+        if AuthData.refresh_token is not None:
+            return AuthData.refresh_token
         try:
             with open(AuthData.refresh_token_path, 'r') as f:
                 return f.read()
