@@ -15,14 +15,26 @@ MAX_RETRIES = 100
 
 
 class AuthService:
+    """
+    Handles authentication with Spotify.
+
+    This class is responsible for getting an access token from Spotify.
+    """
     @staticmethod
     def basic_auth():
+        """
+        Get the basic authorization header.
+        :return:
+        """
         return "Basic " + base64.b64encode(
             (get_client_id() + ":" + get_client_secret()).encode()
         ).decode()
 
     @staticmethod
     def get_new_tokens():
+        """
+        Get new access and refresh tokens from Spotify from scratch.
+        """
         # make a new request for tokens
         local_state = str(random.randint(0, 100000))
         code_verifier = ''.join([random.choice(string.ascii_letters) for _ in range(128)])
@@ -73,7 +85,13 @@ class AuthService:
 
     @staticmethod
     def get_access_token():
-        # get access token from AuthData
+        """
+        Get the access token from AuthData.
+        If the access token is invalid, refresh it.
+
+        :return: The access token.
+        :rtype: str
+        """
         auth_data_token = AuthData.get_access_token()
         if auth_data_token is not None:
             return auth_data_token
@@ -89,6 +107,10 @@ class AuthService:
 
     @staticmethod
     def refresh_access_token():
+        """
+        Refresh the access token.
+        """
+
         # get refresh token from AuthData
         refresh_token = AuthData.get_refresh_token()
 
