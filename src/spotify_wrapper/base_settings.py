@@ -1,5 +1,32 @@
 base_url = 'https://api.spotify.com/v1'
-# TODO: auto collect device id from config
-device_id = '2945f2133156ef97511eef2c043adb27f9b5c82e'
 
-# TODO: reload config on change
+
+class BaseSettings:
+    """
+    BaseSettings is a singleton class, which holds the base settings for the spotify wrapper.
+    """
+    def __init__(self):
+        self.device_id = ''
+
+    def get_device_id(self):
+        """
+        Get device id from cached BaseSettings instance.
+
+        :return device id
+        :rtype  str
+        """
+        return self.device_id
+
+
+settings = BaseSettings()
+
+
+def reload_config(new_id=None):
+    """
+    reload config from config file.
+
+    :param new_id: new device id
+    :ptype new_id: str
+    """
+    if new_id is not None:
+        settings.device_id = new_id

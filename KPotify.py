@@ -10,7 +10,8 @@ class KPotify(kp.Plugin):
     """
     configs = [
         ("client_id", "spotify"),
-        ("client_secret", "spotify")
+        ("client_secret", "spotify"),
+        ("device_id", "device")
     ]
 
     def on_start(self):
