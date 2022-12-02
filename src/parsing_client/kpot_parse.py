@@ -30,10 +30,10 @@ class KpotParse:
     @staticmethod
     def parse(user_input):
         user_input = user_input.lower()
-        if not user_input.startswith("kpot "):
+        if not user_input.startswith("kpot"):
             return None
         suggestions = []
-        user_input = user_input[5:]
+        user_input = " ".join(user_input.split(" ")[1:])
         parser_futures = [
             executor.submit(KpotPlayer.parse, user_input),
             executor.submit(KpotSearch.parse, user_input)
