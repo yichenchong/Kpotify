@@ -11,8 +11,7 @@ class KpotParse:
         suggestions = []
         user_input = user_input[5:]
         suggestions.extend(KpotPlayer.parse(user_input))
-        if user_input.startswith("play "):
-            suggestions.extend(KpotSearch.parse(user_input))
+        suggestions.extend(KpotSearch.parse(user_input))
         return suggestions
 
 
@@ -26,7 +25,10 @@ class KpotPlayer:
 class KpotSearch:
     @staticmethod
     def parse(user_input):
-        user_input = user_input[5:]
+        if user_input.startswith("search "):
+            user_input = user_input[7:]
+        if user_input.startswith("play "):
+            user_input = user_input[5:]
         if user_input.startswith("artist "):
             user_input = user_input[7:]
             search_types = [wrapper.Search.SearchType.ARTIST]

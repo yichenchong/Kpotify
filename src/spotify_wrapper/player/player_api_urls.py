@@ -2,6 +2,9 @@ from ..base_settings import base_url
 
 
 class PlayerAPIURLs:
+    """
+    PlayerAPIURLs is a singleton class, which holds the urls for the player api.
+    """
     get_currently_playing = base_url + '/me/player/currently-playing'
     get_devices = base_url + '/me/player/devices'
     get_playback = base_url + '/me/player'
