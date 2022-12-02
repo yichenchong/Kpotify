@@ -8,6 +8,7 @@ class KPotify(kp.Plugin):
     """
     A KeyPirinha plugin to control Spotify
     """
+
     configs = [
         ("client_id", "spotify"),
         ("client_secret", "spotify"),

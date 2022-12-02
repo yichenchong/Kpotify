@@ -27,7 +27,7 @@ class Artist(Item):
         return self.name
 
     def description(self):
-        return f"{', '.join(self.genres)}"
+        return f"Artist: {', '.join(self.genres)}"
 
     def target(self):
         return self.uri

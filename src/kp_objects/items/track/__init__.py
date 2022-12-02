@@ -32,8 +32,8 @@ class Track(Item):
 
     def description(self):
         if self.duration_ms is None:
-            return f"{', '.join(self.artists)} - {self.album}"
-        return f"{', '.join(self.artists)} - {self.album} ({self.duration_ms / 1000}s)"
+            return f"Track: {', '.join(self.artists)} - {self.album}"
+        return f"Track: {', '.join(self.artists)} - {self.album} ({self.duration_ms / 1000}s)"
 
     def target(self):
         return self.uri

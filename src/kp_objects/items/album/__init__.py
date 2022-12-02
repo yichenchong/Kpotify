@@ -28,7 +28,7 @@ class Album(Item):
         return self.name
 
     def description(self):
-        return f"{', '.join(self.artists)} ({self.release_date})"
+        return f"Album: {', '.join(self.artists)} ({self.release_date})"
 
     def target(self):
         return self.uri

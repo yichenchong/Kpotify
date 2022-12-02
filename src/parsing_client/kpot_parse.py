@@ -1,8 +1,32 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep, time
+
 from .. import spotify_wrapper as wrapper
 from ..kp_objects import items as items
+from ..intelligence import object_rank as ranker
+
+executor = ThreadPoolExecutor(max_workers=4)
+
+class SearchCounter:
+    """
+    A class to keep track of the number of searches.
+    """
+    def __init__(self):
+        self.count = 0
+
+    def increment(self):
+        self.count += 1
+
+    def get(self):
+        return self.count
+
+
+sc = SearchCounter()
 
 
 class KpotParse:
+
     @staticmethod
     def parse(user_input):
         user_input = user_input.lower()
@@ -10,8 +34,12 @@ class KpotParse:
             return None
         suggestions = []
         user_input = user_input[5:]
-        suggestions.extend(KpotPlayer.parse(user_input))
-        suggestions.extend(KpotSearch.parse(user_input))
+        parser_futures = [
+            executor.submit(KpotPlayer.parse, user_input),
+            executor.submit(KpotSearch.parse, user_input)
+        ]
+        for future in parser_futures:
+            suggestions.extend(future.result())
         return suggestions
 
 
@@ -25,42 +53,70 @@ class KpotPlayer:
 class KpotSearch:
     @staticmethod
     def parse(user_input):
+        # eliminate searching while typing
+        sc.increment()
+        cur = sc.get()
+        t = time()
+        while time() - t < 0.3:
+            sleep(0.05)
+            if sc.get() > cur:
+                return []
+        # start parsing searches
         if user_input.startswith("search "):
             user_input = user_input[7:]
         if user_input.startswith("play "):
             user_input = user_input[5:]
+        # searching parsing
         if user_input.startswith("artist "):
-            user_input = user_input[7:]
-            search_types = [wrapper.Search.SearchType.ARTIST]
+            return KpotSearch.parse_artist(user_input[7:])
         elif user_input.startswith("album "):
-            user_input = user_input[6:]
-            search_types = [wrapper.Search.SearchType.ALBUM]
+            return KpotSearch.parse_album(user_input[6:])
         elif user_input.startswith("track "):
-            user_input = user_input[6:]
-            search_types = [wrapper.Search.SearchType.TRACK]
+            return KpotSearch.parse_track(user_input[6:])
         elif user_input.startswith("playlist "):
-            user_input = user_input[9:]
-            search_types = [wrapper.Search.SearchType.PLAYLIST]
+            return KpotSearch.parse_playlist(user_input[9:])
         elif user_input.startswith("something "):
             user_input = user_input[10:]
-            search_types = KpotSearch.parse_something(user_input)
+            # search_types = KpotSearch.parse_something(user_input)
             pass  # TODO: parse something by relevance
             return []
         else:
-            search_types = KpotSearch.parse_all(user_input)
+            return KpotSearch.parse_all(user_input)
+
+    @staticmethod
+    def parse_artist(user_input, limit=20):
+        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.ARTIST])
+        if resp.status_code != 200:
             return []
-            # TODO: parse all by relevance
-        # TODO: add search type "my playlists"
-        resp = wrapper.Search.search(user_input, search_types)
+        search = resp.json()
+        artists = search.get("artists", {}).get("items", [])
+        suggestions = [items.Artist(artist["name"], artist["genres"], artist["uri"]) for artist in artists]
+        return suggestions
+
+    @staticmethod
+    def parse_album(user_input, limit=20):
+        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.ALBUM])
+        if resp.status_code != 200:
+            return []
+        search = resp.json()
+        albums = search.get("albums", {}).get("items", [])
+        suggestions = [
+            items.Album(
+                album["name"],
+                [artist["name"] for artist in album["artists"]],
+                album["name"]
+            ) for album in albums
+        ]
+        return suggestions
+
+    @staticmethod
+    def parse_track(user_input, limit=20):
+        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.TRACK])
         if resp.status_code != 200:
             return []
         search = resp.json()
         tracks = search.get("tracks", {}).get("items", [])
-        albums = search.get("albums", {}).get("items", [])
-        artists = search.get("artists", {}).get("items", [])
-        playlists = search.get("playlists", {}).get("items", [])
-        suggestions = []
-        suggestions.extend([
+        suggestions = [
             items.Track(
                 track["name"],
                 track["album"]["name"],
@@ -68,63 +124,41 @@ class KpotSearch:
                 track["uri"],
                 track["duration_ms"]
             ) for track in tracks
-        ])
-        suggestions.extend([
-            items.Album(
-                album["name"],
-                [artist["name"] for artist in album["artists"]],
-                album["uri"],
-                release_date=album["release_date"],
-                image_url=album["images"][0]["url"] if album["images"] else None
-            ) for album in albums
-        ])
-        suggestions.extend([
-            items.Artist(
-                artist["name"],
-                artist["genres"],
-                artist["uri"],
-                image_url=artist["images"][0]["url"] if artist["images"] else None
-            ) for artist in artists
-        ])
-        suggestions.extend([
+        ]
+        return suggestions
+
+    @staticmethod
+    def parse_playlist(user_input, limit=20):
+        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.PLAYLIST])
+        if resp.status_code != 200:
+            return []
+        search = resp.json()
+        playlists = search.get("playlists", {}).get("items", [])
+        suggestions = [
             items.Playlist(
                 playlist["name"],
                 playlist["owner"]["display_name"],
                 playlist["description"],
-                playlist["uri"],
-                image_url=playlist["images"][0]["url"] if playlist["images"] else None
+                playlist["uri"]
             ) for playlist in playlists
-        ])
-
+        ]
         return suggestions
-        # TODO: parse play search query
-
-    @staticmethod
-    def parse_artist():
-        return [wrapper.Search.SearchType.ARTIST]
-
-    @staticmethod
-    def parse_album():
-        return [wrapper.Search.SearchType.ALBUM]
-
-    @staticmethod
-    def parse_track():
-        return [wrapper.Search.SearchType.TRACK]
-
-    @staticmethod
-    def parse_playlist():
-        return [wrapper.Search.SearchType.PLAYLIST]
 
     @staticmethod
     def parse_all(user_input):
-        return [
-            wrapper.Search.SearchType.ALBUM,
-            wrapper.Search.SearchType.TRACK,
-            wrapper.Search.SearchType.PLAYLIST
+        search_futures = [
+            executor.submit(KpotSearch.parse_artist, user_input),
+            executor.submit(KpotSearch.parse_album, user_input),
+            executor.submit(KpotSearch.parse_track, user_input),
+            executor.submit(KpotSearch.parse_playlist, user_input)
         ]
+        suggestions = []
+        for future in search_futures:
+            suggestions.extend(future.result())
+        return ranker.rank(suggestions, user_input, 5)
 
     @staticmethod
-    def parse_something(user_input):
+    def parse_something():
         return [
             wrapper.Search.SearchType.ALBUM,
             wrapper.Search.SearchType.TRACK,

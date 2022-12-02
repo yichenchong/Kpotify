@@ -1,5 +1,6 @@
 import hashlib
 import string
+from threading import Lock
 
 from .auth_config_handler import get_client_id, get_client_secret
 from .auth_data import AuthData
@@ -13,6 +14,8 @@ import webbrowser
 scope = "user-read-playback-state user-modify-playback-state"
 MAX_RETRIES = 100
 
+get_access_token_lock = Lock()
+get_new_token_lock = Lock()
 
 class AuthService:
     """
@@ -36,6 +39,11 @@ class AuthService:
         Get new access and refresh tokens from Spotify from scratch.
         """
         # make a new request for tokens
+        get_new_token_lock.acquire()
+        # check if another thread already got the tokens
+        if AuthData.get_access_token() is not None:
+            get_new_token_lock.release()
+            return
         local_state = str(random.randint(0, 100000))
         code_verifier = ''.join([random.choice(string.ascii_letters) for _ in range(128)])
         code_challenge = base64.urlsafe_b64encode(
@@ -55,6 +63,7 @@ class AuthService:
         print(code, state)
         if state != local_state:
             print("State mismatch")
+            get_new_token_lock.release()
             # TODO: log error
             return None
         token_params = {
@@ -76,10 +85,12 @@ class AuthService:
             json = r.json()
             AuthData.set_refresh_token(json['refresh_token'])
             AuthData.set_access_token(json['access_token'])
+            get_new_token_lock.release()
             return AuthData.get_access_token()
         else:
             print("Error getting access token")
             print(r.content)
+            get_new_token_lock.release()
             # TODO: log error
             return None
 
@@ -92,8 +103,10 @@ class AuthService:
         :return: The access token.
         :rtype: str
         """
+        get_access_token_lock.acquire()
         auth_data_token = AuthData.get_access_token()
         if auth_data_token is not None:
+            get_access_token_lock.release()
             return auth_data_token
         counter = 0
         while auth_data_token is None:
@@ -102,6 +115,7 @@ class AuthService:
             AuthService.refresh_access_token()
             auth_data_token = AuthData.get_access_token()
             counter += 1
+        get_access_token_lock.release()
         return auth_data_token
 
 

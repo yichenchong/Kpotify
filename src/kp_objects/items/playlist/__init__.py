@@ -28,7 +28,7 @@ class Playlist(Item):
         return self.name
 
     def description(self):
-        return f"{self.owner} - {self.desc}"
+        return f"Playlist: {self.owner} - {self.desc}"
 
     def target(self):
         return self.uri
