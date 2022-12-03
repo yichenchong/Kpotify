@@ -94,7 +94,6 @@ class SafeRequests:
             headers["Authorization"] = SafeRequests.__access_token__()
         if isinstance(data, dict):
             data = json.dumps(data)
-        print(data)
         r = requests.put(url, data=data, headers=headers, params=params)
         if r.status_code == 401:
             AuthService.refresh_access_token()

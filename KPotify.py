@@ -1,3 +1,4 @@
+from src.logger import debug
 from .src.kp_objects import Registry
 from .src.config_handler import on_config_change
 from .src.parsing_client import parse as Parse
@@ -68,7 +69,7 @@ class KPotify(kp.Plugin):
         Registry.execute(item, action)
 
     def on_events(self, flags):
-        print("Detected config change in KPotify, reloading config")
+        debug("Detected config change in KPotify, reloading config")
         settings = self.load_settings()
         config_dict = {
             setting[0]: settings.get_stripped(setting[0], setting[1])

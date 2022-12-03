@@ -2,6 +2,7 @@ from . import Track
 from . import Album
 from . import Artist
 from . import Playlist
+from ...logger import warning
 
 
 class Registry:
@@ -31,7 +32,7 @@ class Registry:
         item_category = item.category()
         if (item_category - Registry.user_base - 1 >= len(Registry.categories)
                 or item_category - Registry.user_base - 1 < 0):
-            print("Category not found")
+            warning("Item category not found in Registry")
             return
         Registry.categories[item_category - Registry.user_base - 1].execute(item, action)
 

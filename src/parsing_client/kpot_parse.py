@@ -5,6 +5,7 @@ from time import sleep, time
 from .. import spotify_wrapper as wrapper
 from ..kp_objects import items as items
 from ..intelligence import object_rank as ranker
+from ..logger import warning
 
 executor = ThreadPoolExecutor(max_workers=4)
 
@@ -184,7 +185,7 @@ class KpotSearch:
         for future in search_futures:
             suggestions.extend(future.result())
         if len(suggestions) > 20:
-            print("Too many suggestions", len(suggestions))
+            warning(f"Too many suggestions: {len(suggestions)}")
             return []
         return ranker.rank(suggestions, user_input, 5)
 

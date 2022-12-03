@@ -7,6 +7,8 @@ from .auth_data import AuthData
 from .auth_server import wait_for_auth_code
 import base64
 import random
+
+from ...logger import error, debug
 from ....lib import requests as requests
 import urllib.parse
 import webbrowser
@@ -27,7 +29,7 @@ class AuthService:
     def basic_auth():
         """
         Get the basic authorization header.
-        :return:
+        :return: basic authorization header
         """
         return "Basic " + base64.b64encode(
             (get_client_id() + ":" + get_client_secret()).encode()
@@ -60,9 +62,8 @@ class AuthService:
         }
         webbrowser.open('https://accounts.spotify.com/authorize?' + urllib.parse.urlencode(login_params))
         code, state = wait_for_auth_code()
-        print(code, state)
         if state != local_state:
-            print("State mismatch")
+            error("State mismatch")
             get_new_token_lock.release()
             # TODO: log error
             return None
@@ -88,8 +89,7 @@ class AuthService:
             get_new_token_lock.release()
             return AuthData.get_access_token()
         else:
-            print("Error getting access token")
-            print(r.content)
+            error("Error getting new tokens: " + str(r.status_code) + ": " + str(r.json()))
             get_new_token_lock.release()
             # TODO: log error
             return None
@@ -142,7 +142,7 @@ class AuthService:
             data=token_params,
             headers=headers
         )
-        print("Refreshing access token")
+        debug("Refreshing access token")
         try:
             AuthData.set_access_token(r.json()['access_token'])
             if "refresh_token" in r.json():
