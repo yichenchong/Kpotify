@@ -1,5 +1,6 @@
 from ..item import Item
 from .actions import PlayTrack, AddToQueue
+from ...image_downloader import ImageDownloader
 from ....spotify_wrapper import Player, Search
 
 
@@ -20,12 +21,13 @@ class Track(Item):
             AddToQueue()
         ]
 
-    def __init__(self, name, album, artists, uri, duration_ms=None):
+    def __init__(self, name, album, artists, uri, duration_ms=None, images=None):
         self.name = name
         self.album = album
         self.artists = artists
         self.uri = uri
         self.duration_ms = duration_ms
+        self.image_url = images[-1]["url"] if images is not None and len(images) > 0 else None
 
     def label(self):
         return self.name
@@ -39,7 +41,7 @@ class Track(Item):
         return self.uri
 
     def icon_handle(self):
-        return None
+        return ImageDownloader().download(self.image_url)
 
     def data_bag(self):
         return ""

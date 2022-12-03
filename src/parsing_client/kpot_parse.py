@@ -8,6 +8,7 @@ from ..intelligence import object_rank as ranker
 
 executor = ThreadPoolExecutor(max_workers=4)
 
+
 class SearchCounter:
     """
     A class to keep track of the number of searches.
@@ -85,17 +86,32 @@ class KpotSearch:
 
     @staticmethod
     def parse_artist(user_input, limit=20):
-        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.ARTIST])
+        resp = wrapper.Search.search(
+            user_input,
+            [wrapper.Search.SearchType.ARTIST],
+            limit=limit
+        )
         if resp.status_code != 200:
             return []
         search = resp.json()
         artists = search.get("artists", {}).get("items", [])
-        suggestions = [items.Artist(artist["name"], artist["genres"], artist["uri"]) for artist in artists]
+        suggestions = [
+            items.Artist(
+                artist["name"],
+                artist["genres"],
+                artist["uri"],
+                images=artist["images"]
+            ) for artist in artists
+        ]
         return suggestions
 
     @staticmethod
     def parse_album(user_input, limit=20):
-        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.ALBUM])
+        resp = wrapper.Search.search(
+            user_input,
+            [wrapper.Search.SearchType.ALBUM],
+            limit=limit
+        )
         if resp.status_code != 200:
             return []
         search = resp.json()
@@ -104,14 +120,20 @@ class KpotSearch:
             items.Album(
                 album["name"],
                 [artist["name"] for artist in album["artists"]],
-                album["name"]
+                album["uri"],
+                album["release_date"],
+                images=album["images"]
             ) for album in albums
         ]
         return suggestions
 
     @staticmethod
     def parse_track(user_input, limit=20):
-        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.TRACK])
+        resp = wrapper.Search.search(
+            user_input,
+            [wrapper.Search.SearchType.TRACK],
+            limit=limit
+        )
         if resp.status_code != 200:
             return []
         search = resp.json()
@@ -122,14 +144,19 @@ class KpotSearch:
                 track["album"]["name"],
                 [artist["name"] for artist in track["artists"]],
                 track["uri"],
-                track["duration_ms"]
+                track["duration_ms"],
+                images=track["album"]["images"]
             ) for track in tracks
         ]
         return suggestions
 
     @staticmethod
     def parse_playlist(user_input, limit=20):
-        resp = wrapper.Search.search(user_input, [wrapper.Search.SearchType.PLAYLIST])
+        resp = wrapper.Search.search(
+            user_input,
+            [wrapper.Search.SearchType.PLAYLIST],
+            limit=limit
+        )
         if resp.status_code != 200:
             return []
         search = resp.json()
@@ -139,7 +166,8 @@ class KpotSearch:
                 playlist["name"],
                 playlist["owner"]["display_name"],
                 playlist["description"],
-                playlist["uri"]
+                playlist["uri"],
+                images=playlist["images"]
             ) for playlist in playlists
         ]
         return suggestions
@@ -147,14 +175,17 @@ class KpotSearch:
     @staticmethod
     def parse_all(user_input):
         search_futures = [
-            executor.submit(KpotSearch.parse_artist, user_input),
-            executor.submit(KpotSearch.parse_album, user_input),
-            executor.submit(KpotSearch.parse_track, user_input),
-            executor.submit(KpotSearch.parse_playlist, user_input)
+            executor.submit(KpotSearch.parse_artist, user_input, 5),
+            executor.submit(KpotSearch.parse_album, user_input, 5),
+            executor.submit(KpotSearch.parse_track, user_input, 5),
+            executor.submit(KpotSearch.parse_playlist, user_input, 5)
         ]
         suggestions = []
         for future in search_futures:
             suggestions.extend(future.result())
+        if len(suggestions) > 20:
+            print("Too many suggestions", len(suggestions))
+            return []
         return ranker.rank(suggestions, user_input, 5)
 
     @staticmethod

@@ -1,3 +1,4 @@
+from ...image_downloader import ImageDownloader
 from ....spotify_wrapper import Player
 from ..item import Item
 from .actions import PlayPlaylist
@@ -17,11 +18,11 @@ class Playlist(Item):
             PlayPlaylist()
         ]
 
-    def __init__(self, name, owner, description, uri, image_url=None):
+    def __init__(self, name, owner, description, uri, images=None):
         self.name = name
         self.owner = owner
         self.desc = description
-        self.image_url = image_url
+        self.image_url = images[-1]["url"] if images is not None and len(images) > 0 else None
         self.uri = uri
 
     def label(self):
@@ -34,7 +35,7 @@ class Playlist(Item):
         return self.uri
 
     def icon_handle(self):
-        return None
+        return ImageDownloader().download(self.image_url)
 
     def data_bag(self):
         return ""
